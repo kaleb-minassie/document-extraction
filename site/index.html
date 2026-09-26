@@ -1,8 +1,46 @@
 <!doctype html>
-<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Extract structured fields from invoices; the Python API adds PDF OCR and optional model extraction."><title>Document Extraction · Kaleb Minassie</title><link rel="stylesheet" href="styles.css"></head>
-<body><header class="topbar"><div class="brand"><span class="brandmark">KM</span><span>Kaleb Minassie <small>/ document extraction</small></span></div><span class="status"><i></i> Interactive demo</span></header>
-<main><div class="app-context"><span class="eyebrow">DOCUMENT AI ENGINEERING STUDY</span><span class="demo-note">Role alignment: Lazarus AI · independent demo</span></div>
-<section class="project" id="documents"><div class="project-head"><div><div class="eyebrow">PYTHON · FASTAPI · PDF · OCR</div><h2>Document extraction</h2><p>Extract invoice fields from text, inspect structured JSON, and check extraction accuracy against expected values.</p></div><div class="project-icon">▤</div></div><div class="workspace"><div class="panel"><div class="panel-title"><span>Document text</span><span class="muted">SAMPLE INVOICE</span></div><label for="document-input">Paste invoice text or upload a .txt file</label><textarea id="document-input" spellcheck="false" rows="12">INVOICE
+<html lang="en">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <meta name="description" content="Extract structured fields from invoices; the Python API adds PDF OCR and optional model extraction.">
+  <title>Document Extraction · Kaleb Minassie</title>
+  <link rel="stylesheet" href="styles.css">
+</head>
+<body>
+  <header class="topbar">
+    <div class="brand">
+      <span class="brandmark">KM</span>
+      <span>Kaleb Minassie <small>/ document extraction</small></span>
+    </div>
+    <span class="status"><i></i> Interactive demo</span>
+  </header>
+
+  <main>
+    <div class="app-context">
+      <span class="eyebrow">DOCUMENT AI ENGINEERING STUDY</span>
+      <span class="demo-note">Role alignment: Lazarus AI · independent demo</span>
+    </div>
+
+    <section class="project" id="documents">
+      <div class="project-head">
+        <div>
+          <div class="eyebrow">PYTHON · FASTAPI · PDF · OCR</div>
+          <h2>Document extraction</h2>
+          <p>Extract invoice fields from text and inspect structured JSON.</p>
+        </div>
+        <div class="project-icon">▤</div>
+      </div>
+
+      <div class="workspace">
+        <div class="panel">
+          <div class="panel-title">
+            <span>Document text</span>
+            <span class="muted">SAMPLE INVOICE</span>
+          </div>
+
+          <label for="document-input">Paste invoice text or upload a .txt file</label>
+          <textarea id="document-input" spellcheck="false" rows="12">INVOICE
 Invoice Number: INV-2026-042
 Date: 2026-09-24
 Vendor: Harbor Supply Co.
@@ -11,6 +49,120 @@ Email: billing@harborsupply.example
 Item,Quantity,Unit Price,Total
 USB-C hub,2,42.50,85.00
 Keyboard,1,65.00,65.00
-Total: $150.00</textarea><input id="doc-file" type="file" accept=".txt,text/plain"><button id="extract-doc" class="primary" type="button">Extract fields <span>→</span></button><p class="hint">This browser demo handles text. The packaged Python API accepts PDFs and uses OCR for scanned pages when Tesseract is installed.</p></div><div class="panel result-panel"><div class="panel-title"><span>Structured extraction</span><span class="muted">JSON</span></div><div id="document-result" aria-live="polite" class="empty">Extract a document to view the JSON result.</div></div></div></section>
-<aside class="implementation"><div><span class="eyebrow">SOURCE CODE</span><h3>See how this app works.</h3><a class="download" href="source.zip" download>Download this project's source ↗</a></div><p>This live demo runs its sample processing in your browser. The source download includes the separate Python FastAPI service, comments, tests, Docker setup, and instructions. The backend supports PDF/OCR and optional AI extraction, which are not active in this browser demo.</p></aside>
-</main><footer>Kaleb Minassie <span>Independent portfolio project · simulated data only</span></footer><script src="app.js"></script></body></html>
+Total: $150.00</textarea>
+
+          <input id="doc-file" type="file" accept=".txt,text/plain">
+          <button id="extract-doc" class="primary" type="button">
+            Extract fields <span>→</span>
+          </button>
+          <p class="hint">
+            This browser demo handles text. The separate Python API accepts PDFs
+            and can use OCR for scanned pages.
+          </p>
+        </div>
+
+        <div class="panel result-panel">
+          <div class="panel-title">
+            <span>Structured extraction</span>
+            <span class="muted">JSON</span>
+          </div>
+          <div id="document-result" aria-live="polite" class="empty">
+            Extract a document to view the JSON result.
+          </div>
+        </div>
+      </div>
+    </section>
+
+    <aside class="implementation" id="source-code">
+      <div>
+        <span class="eyebrow">SOURCE CODE</span>
+        <h3>See how this app works.</h3>
+        <a class="download" href="source.zip" download>
+          Download this project's source ↗
+        </a>
+      </div>
+      <p>
+        This live demo processes text in your browser. The source download
+        includes a separate FastAPI backend for PDFs, OCR, and optional model
+        extraction. Those backend features are not active on this page.
+      </p>
+    </aside>
+  </main>
+
+  <footer>
+    Kaleb Minassie
+    <span>Independent portfolio project · simulated data only</span>
+  </footer>
+
+  <!-- This help assistant runs in the browser without an API key. -->
+  <div class="assistant-shell">
+    <button
+      id="assistant-toggle"
+      class="assistant-toggle"
+      type="button"
+      aria-expanded="false"
+      aria-controls="assistant-panel"
+    >
+      Ask the document assistant <span aria-hidden="true">✦</span>
+    </button>
+
+    <section
+      id="assistant-panel"
+      class="assistant-panel"
+      aria-label="Document assistant"
+      hidden
+    >
+      <div class="assistant-header">
+        <div>
+          <strong>Document assistant</strong>
+          <small>Help with the demo and its results</small>
+        </div>
+        <button id="assistant-close" type="button" aria-label="Close assistant">
+          ×
+        </button>
+      </div>
+
+      <div
+        id="assistant-messages"
+        class="assistant-messages"
+        role="log"
+        aria-live="polite"
+        aria-relevant="additions text"
+      ></div>
+
+      <div class="assistant-prompts" aria-label="Suggested questions">
+        <button type="button" data-assistant-prompt="How do I start?">
+          How do I start?
+        </button>
+        <button type="button" data-assistant-prompt="Explain my result">
+          Explain my result
+        </button>
+        <button type="button" data-assistant-prompt="Can I upload a PDF?">
+          Can I upload a PDF?
+        </button>
+      </div>
+
+      <form id="assistant-form" class="assistant-form">
+        <label class="visually-hidden" for="assistant-input">
+          Ask a question about document extraction
+        </label>
+        <input
+          id="assistant-input"
+          type="text"
+          maxlength="250"
+          autocomplete="off"
+          placeholder="Ask about this demo…"
+          required
+        >
+        <button type="submit" aria-label="Send message">Send</button>
+      </form>
+
+      <p class="assistant-disclosure">
+        On-page guide. Answers are based on this project, not a live AI model.
+      </p>
+    </section>
+  </div>
+
+  <script src="app.js"></script>
+</body>
+</html>
