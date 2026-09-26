@@ -1,0 +1,16 @@
+<!doctype html>
+<html lang="en"><head><meta charset="utf-8"><meta name="viewport" content="width=device-width, initial-scale=1"><meta name="description" content="Extract structured fields from invoices; the Python API adds PDF OCR and optional model extraction."><title>Document Extraction · Kaleb Minassie</title><link rel="stylesheet" href="styles.css"></head>
+<body><header class="topbar"><div class="brand"><span class="brandmark">KM</span><span>Kaleb Minassie <small>/ document extraction</small></span></div><span class="status"><i></i> Interactive demo</span></header>
+<main><div class="app-context"><span class="eyebrow">DOCUMENT AI ENGINEERING STUDY</span><span class="demo-note">Role alignment: Lazarus AI · independent demo</span></div>
+<section class="project" id="documents"><div class="project-head"><div><div class="eyebrow">PYTHON · FASTAPI · PDF · OCR</div><h2>Document extraction</h2><p>Extract invoice fields from text, inspect structured JSON, and check extraction accuracy against expected values.</p></div><div class="project-icon">▤</div></div><div class="workspace"><div class="panel"><div class="panel-title"><span>Document text</span><span class="muted">SAMPLE INVOICE</span></div><label for="document-input">Paste invoice text or upload a .txt file</label><textarea id="document-input" spellcheck="false" rows="12">INVOICE
+Invoice Number: INV-2026-042
+Date: 2026-09-24
+Vendor: Harbor Supply Co.
+Bill To: Northline Labs
+Email: billing@harborsupply.example
+Item,Quantity,Unit Price,Total
+USB-C hub,2,42.50,85.00
+Keyboard,1,65.00,65.00
+Total: $150.00</textarea><input id="doc-file" type="file" accept=".txt,text/plain"><button id="extract-doc" class="primary" type="button">Extract fields <span>→</span></button><p class="hint">This browser demo handles text. The packaged Python API accepts PDFs and uses OCR for scanned pages when Tesseract is installed.</p></div><div class="panel result-panel"><div class="panel-title"><span>Structured extraction</span><span class="muted">JSON</span></div><div id="document-result" aria-live="polite" class="empty">Extract a document to view the JSON result.</div></div></div></section>
+<aside class="implementation"><div><span class="eyebrow">SOURCE CODE</span><h3>See how this app works.</h3><a class="download" href="source.zip" download>Download this project's source ↗</a></div><p>This live demo runs its sample processing in your browser. The source download includes the separate Python FastAPI service, comments, tests, Docker setup, and instructions. The backend supports PDF/OCR and optional AI extraction, which are not active in this browser demo.</p></aside>
+</main><footer>Kaleb Minassie <span>Independent portfolio project · simulated data only</span></footer><script src="app.js"></script></body></html>
