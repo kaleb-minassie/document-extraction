@@ -25,9 +25,9 @@
     <section class="project" id="documents">
       <div class="project-head">
         <div>
-          <div class="eyebrow">PYTHON · FASTAPI · PDF · OCR</div>
+          <div class="eyebrow">DOCUMENT AI · FASTAPI · PDF · OCR</div>
           <h2>Document extraction</h2>
-          <p>Extract invoice fields from text and inspect structured JSON.</p>
+          <p>Turn unstructured invoices into reviewable JSON. Test field accuracy in the browser, or explore the separate API for PDF, OCR, and optional model extraction.</p>
         </div>
         <div class="project-icon">▤</div>
       </div>
@@ -52,22 +52,27 @@ Keyboard,1,65.00,65.00
 Total: $150.00</textarea>
 
           <input id="doc-file" type="file" accept=".txt,text/plain">
+
+          <details class="validation">
+            <summary>Compare with expected fields <span>Optional evaluation</span></summary>
+            <label for="expected-fields">Expected JSON (edit a value to see a mismatch)</label>
+            <textarea id="expected-fields" spellcheck="false" rows="4">{"invoice_number":"INV-2026-042","vendor":"Harbor Supply Co.","total":"150.00"}</textarea>
+          </details>
+
           <button id="extract-doc" class="primary" type="button">
-            Extract fields <span>→</span>
+            Extract and evaluate <span>→</span>
           </button>
-          <p class="hint">
-            This browser demo handles text. The separate Python API accepts PDFs
-            and can use OCR for scanned pages.
-          </p>
+
+          <p class="hint">The public demo parses text with rules. The packaged FastAPI service accepts PDFs, uses OCR for scanned pages, and offers optional model-backed extraction.</p>
         </div>
 
         <div class="panel result-panel">
           <div class="panel-title">
-            <span>Structured extraction</span>
-            <span class="muted">JSON</span>
+            <span>Extraction review</span>
+            <span class="muted">JSON + ACCURACY</span>
           </div>
           <div id="document-result" aria-live="polite" class="empty">
-            Extract a document to view the JSON result.
+            Extract a document to view structured fields and accuracy.
           </div>
         </div>
       </div>
@@ -77,15 +82,9 @@ Total: $150.00</textarea>
       <div>
         <span class="eyebrow">SOURCE CODE</span>
         <h3>See how this app works.</h3>
-        <a class="download" href="source.zip" download>
-          Download this project's source ↗
-        </a>
+        <a class="download" href="source.zip" download>Download this project's source ↗</a>
       </div>
-      <p>
-        This live demo processes text in your browser. The source download
-        includes a separate FastAPI backend for PDFs, OCR, and optional model
-        extraction. Those backend features are not active on this page.
-      </p>
+      <p>This live demo runs its sample processing in your browser. The source download includes the separate Python FastAPI service, comments, tests, Docker setup, and instructions. The backend supports PDF/OCR and optional AI extraction, which are not active in this browser demo.</p>
     </aside>
   </main>
 
@@ -94,66 +93,39 @@ Total: $150.00</textarea>
     <span>Independent portfolio project · simulated data only</span>
   </footer>
 
-  <!-- This help assistant runs in the browser without an API key. -->
+  <!-- This assistant runs in the browser and works on GitHub Pages. -->
   <div class="assistant-shell">
-    <button
-      id="assistant-toggle"
-      class="assistant-toggle"
-      type="button"
-      aria-expanded="false"
-      aria-controls="assistant-panel"
-    >
+    <button id="assistant-toggle" class="assistant-toggle" type="button"
+            aria-expanded="false" aria-controls="assistant-panel">
       Ask the document assistant <span aria-hidden="true">✦</span>
     </button>
 
-    <section
-      id="assistant-panel"
-      class="assistant-panel"
-      aria-label="Document assistant"
-      hidden
-    >
+    <section id="assistant-panel" class="assistant-panel"
+             aria-label="Document assistant" hidden>
       <div class="assistant-header">
         <div>
           <strong>Document assistant</strong>
           <small>Help with the demo and its results</small>
         </div>
-        <button id="assistant-close" type="button" aria-label="Close assistant">
-          ×
-        </button>
+        <button id="assistant-close" type="button" aria-label="Close assistant">×</button>
       </div>
 
-      <div
-        id="assistant-messages"
-        class="assistant-messages"
-        role="log"
-        aria-live="polite"
-        aria-relevant="additions text"
-      ></div>
+      <div id="assistant-messages" class="assistant-messages"
+           role="log" aria-live="polite" aria-relevant="additions text"></div>
 
       <div class="assistant-prompts" aria-label="Suggested questions">
-        <button type="button" data-assistant-prompt="How do I start?">
-          How do I start?
-        </button>
-        <button type="button" data-assistant-prompt="Explain my result">
-          Explain my result
-        </button>
-        <button type="button" data-assistant-prompt="Can I upload a PDF?">
-          Can I upload a PDF?
-        </button>
+        <button type="button" data-assistant-prompt="How do I start?">How do I start?</button>
+        <button type="button" data-assistant-prompt="Explain my result">Explain my result</button>
+        <button type="button" data-assistant-prompt="Check accuracy">Check accuracy</button>
+        <button type="button" data-assistant-prompt="Can I upload a PDF?">Can I upload a PDF?</button>
       </div>
 
       <form id="assistant-form" class="assistant-form">
         <label class="visually-hidden" for="assistant-input">
           Ask a question about document extraction
         </label>
-        <input
-          id="assistant-input"
-          type="text"
-          maxlength="250"
-          autocomplete="off"
-          placeholder="Ask about this demo…"
-          required
-        >
+        <input id="assistant-input" type="text" maxlength="250"
+               autocomplete="off" placeholder="Ask about this demo…" required>
         <button type="submit" aria-label="Send message">Send</button>
       </form>
 
