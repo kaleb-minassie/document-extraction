@@ -3,44 +3,157 @@
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <meta name="description" content="Extract structured fields from invoices; the Python API adds PDF OCR and optional model extraction.">
-  <title>Document Extraction · Kaleb Minassie</title>
+  <meta name="description" content="An independent document intelligence portfolio demo: extract invoice fields, inspect source evidence, and review exact-match results.">
+  <title>Document Intelligence Studio · Kaleb Minassie</title>
   <link rel="stylesheet" href="styles.css">
+  <script src="app.js" defer></script>
 </head>
 <body>
-  <header class="topbar">
-    <div class="brand">
-      <span class="brandmark">KM</span>
-      <span>Kaleb Minassie <small>/ document extraction</small></span>
-    </div>
-    <span class="status"><i></i> Interactive demo</span>
+  <header class="site-header">
+    <a class="identity" href="#top" aria-label="Kaleb Minassie, back to top">
+      <span class="identity-mark">K<span class="mark-slash">/</span>M</span>
+      <span class="identity-name">
+        Kaleb Minassie
+        <small>Document Intelligence Studio</small>
+      </span>
+    </a>
+
+    <nav aria-label="Main navigation">
+      <a href="#workflow">Workflow</a>
+      <a href="#documents">Try the demo</a>
+      <a href="#architecture">How it works</a>
+    </nav>
+
+    <a class="header-link" href="#source-code">
+      View source <span aria-hidden="true">↗</span>
+    </a>
   </header>
 
-  <main>
-    <div class="app-context">
-      <span class="eyebrow">DOCUMENT AI ENGINEERING STUDY</span>
-      <span class="demo-note">Role alignment: Lazarus AI · independent demo</span>
-    </div>
+  <main id="top">
+    <!-- Hero section with an original blue wave graphic. -->
+    <section class="hero">
+      <div class="hero-copy">
+        <span class="hero-announcement">
+          <span class="announcement-symbol" aria-hidden="true">✳</span>
+          Independent document AI project
+          <span aria-hidden="true">↗</span>
+        </span>
 
-    <section class="project" id="documents">
-      <div class="project-head">
-        <div>
-          <div class="eyebrow">DOCUMENT AI · FASTAPI · PDF · OCR</div>
-          <h2>Document extraction</h2>
-          <p>Turn unstructured invoices into reviewable JSON. Test field accuracy in the browser, or explore the separate API for PDF, OCR, and optional model extraction.</p>
+        <span class="eyebrow">
+          <span class="eyebrow-dot"></span>
+          EXTRACT · VERIFY · REVIEW
+        </span>
+
+        <h1>Turn complex files<br>into <em>clear answers.</em></h1>
+
+        <p class="hero-lead">
+          An interactive document intelligence study. Extract fields from an
+          invoice, trace every result to its source, and review what needs attention.
+        </p>
+
+        <div class="hero-actions">
+          <a class="button button-primary" href="#documents">
+            Launch interactive demo <span aria-hidden="true">↗</span>
+          </a>
+          <a class="button button-outline" href="#architecture">
+            Explore the architecture <span aria-hidden="true">→</span>
+          </a>
         </div>
-        <div class="project-icon">▤</div>
+
+        <p class="hero-context">
+          Inspired by the document processing and explainability themes described
+          by <a href="https://lazarusaie.com/" target="_blank" rel="noopener noreferrer">Lazarus AI</a>.
+          An independent portfolio demonstration by Kaleb Minassie; no affiliation
+          or endorsement.
+        </p>
+      </div>
+
+      <div class="hero-visual" aria-hidden="true">
+        <svg class="intelligence-wave" viewBox="0 0 800 600"
+             preserveAspectRatio="xMidYMid slice"
+             xmlns="http://www.w3.org/2000/svg">
+          <defs>
+            <linearGradient id="wave-grad">
+              <stop stop-color="#1845ff"/>
+              <stop offset=".48" stop-color="#7397ff"/>
+              <stop offset="1" stop-color="#e7efff"/>
+            </linearGradient>
+          </defs>
+          <g fill="none" stroke="url(#wave-grad)" stroke-width="2">
+            <path d="M-110 570C95 545 145 405 344 360S580 158 905 55"/>
+            <path d="M-110 580C90 530 155 420 352 380S594 174 905 75"/>
+            <path d="M-110 590C95 545 170 425 360 400S590 195 905 95"/>
+            <path d="M-110 600C102 560 180 440 368 420S610 212 905 115"/>
+            <path d="M-110 610C110 570 195 455 376 440S622 235 905 135"/>
+            <path d="M-110 620C112 584 210 475 384 460S640 258 905 155"/>
+            <path d="M-110 630C125 605 225 495 392 480S660 275 905 175"/>
+            <path d="M-110 640C135 618 240 515 400 500S680 300 905 195"/>
+          </g>
+        </svg>
+
+        <div class="flow-card source-card">
+          <span>INPUT / 01</span>
+          <strong>Unstructured invoice</strong>
+          <i>Invoice Number: INV-2026-042</i>
+          <i>Vendor: Harbor Supply Co.</i>
+        </div>
+
+        <div class="flow-card output-card">
+          <span>OUTPUT / 02</span>
+          <strong>Structured + traceable</strong>
+          <i>invoice_number: INV-2026-042</i>
+          <small>✓ Source line verified</small>
+        </div>
+      </div>
+    </section>
+
+    <!-- Explain the same steps visitors can try in the demo. -->
+    <section id="workflow" class="workflow-section" aria-labelledby="workflow-title">
+      <div class="section-intro">
+        <span class="eyebrow">THE WORKFLOW</span>
+        <h2 id="workflow-title">From source to review</h2>
+        <p>Each step remains visible so a visitor can inspect how the result was produced.</p>
+      </div>
+
+      <div class="workflow-grid">
+        <article class="step-card">
+          <span class="step-number">01</span>
+          <h3>Ingest</h3>
+          <p>Paste an invoice or select a UTF-8 text file. The separate FastAPI service also reads PDFs and can use OCR for scanned pages.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-number">02</span>
+          <h3>Extract</h3>
+          <p>Parse labeled fields and simple line items into JSON. The public browser demo uses deterministic text rules.</p>
+        </article>
+        <article class="step-card">
+          <span class="step-number">03</span>
+          <h3>Verify</h3>
+          <p>Trace fields back to source lines and compare known values. Mismatches are marked for human review.</p>
+        </article>
+      </div>
+    </section>
+
+    <!-- The actual interactive document extraction workspace. -->
+    <section id="documents" class="studio-section" aria-labelledby="studio-title">
+      <div class="section-intro studio-intro">
+        <div>
+          <span class="eyebrow">INTERACTIVE WORKSPACE</span>
+          <h2 id="studio-title">Try a document</h2>
+          <p>Use the fictional sample below or paste your own text. This page processes content in your browser.</p>
+        </div>
+        <span class="mode-pill"><span></span> Browser demo · rules mode</span>
       </div>
 
       <div class="workspace">
-        <div class="panel">
-          <div class="panel-title">
-            <span>Document text</span>
-            <span class="muted">SAMPLE INVOICE</span>
+        <div class="panel input-panel">
+          <div class="panel-heading">
+            <span class="panel-kicker">01 / SOURCE DOCUMENT</span>
+            <span class="file-label">TXT INPUT</span>
           </div>
 
-          <label for="document-input">Paste invoice text or upload a .txt file</label>
-          <textarea id="document-input" spellcheck="false" rows="12">INVOICE
+          <label class="input-label" for="document-input">Invoice text</label>
+          <textarea id="document-input" spellcheck="false" rows="14">INVOICE
 Invoice Number: INV-2026-042
 Date: 2026-09-24
 Vendor: Harbor Supply Co.
@@ -51,61 +164,110 @@ USB-C hub,2,42.50,85.00
 Keyboard,1,65.00,65.00
 Total: $150.00</textarea>
 
-          <input id="doc-file" type="file" accept=".txt,text/plain">
+          <div class="file-row">
+            <label for="doc-file" class="file-button">Choose .txt file</label>
+            <input id="doc-file" type="file" accept=".txt,text/plain">
+            <span id="selected-file">Or use the sample above</span>
+          </div>
 
           <details class="validation">
-            <summary>Compare with expected fields <span>Optional evaluation</span></summary>
-            <label for="expected-fields">Expected JSON (edit a value to see a mismatch)</label>
+            <summary>Compare with expected values <span>OPTIONAL</span></summary>
+            <label for="expected-fields">Expected fields as JSON</label>
             <textarea id="expected-fields" spellcheck="false" rows="4">{"invoice_number":"INV-2026-042","vendor":"Harbor Supply Co.","total":"150.00"}</textarea>
+            <p>Edit one value to see how the review flags a mismatch.</p>
           </details>
 
-          <button id="extract-doc" class="primary" type="button">
-            Extract and evaluate <span>→</span>
+          <button id="extract-doc" class="run-button" type="button">
+            Extract and review <span aria-hidden="true">↗</span>
           </button>
 
-          <p class="hint">The public demo parses text with rules. The packaged FastAPI service accepts PDFs, uses OCR for scanned pages, and offers optional model-backed extraction.</p>
+          <p class="input-note">
+            PDF/OCR and optional model extraction are available in the separate
+            backend source, not on this static page.
+          </p>
         </div>
 
         <div class="panel result-panel">
-          <div class="panel-title">
-            <span>Extraction review</span>
-            <span class="muted">JSON + ACCURACY</span>
+          <div class="panel-heading">
+            <span class="panel-kicker">02 / REVIEW OUTPUT</span>
+            <span class="file-label">STRUCTURED DATA</span>
           </div>
-          <div id="document-result" aria-live="polite" class="empty">
-            Extract a document to view structured fields and accuracy.
+          <div id="document-result" aria-live="polite" class="result-empty">
+            <div class="empty-icon">⌁</div>
+            <h3>Ready to process</h3>
+            <p>Run the sample invoice to inspect extracted fields, source lines, and evaluation results.</p>
           </div>
         </div>
       </div>
     </section>
 
-    <aside class="implementation" id="source-code">
-      <div>
-        <span class="eyebrow">SOURCE CODE</span>
-        <h3>See how this app works.</h3>
-        <a class="download" href="source.zip" download>Download this project's source ↗</a>
+    <section id="architecture" class="architecture-section" aria-labelledby="architecture-title">
+      <div class="section-intro">
+        <span class="eyebrow">UNDER THE HOOD</span>
+        <h2 id="architecture-title">Two ways to explore the system</h2>
+        <p>The hosted demo and the packaged service demonstrate different parts of the workflow.</p>
       </div>
-      <p>This live demo runs its sample processing in your browser. The source download includes the separate Python FastAPI service, comments, tests, Docker setup, and instructions. The backend supports PDF/OCR and optional AI extraction, which are not active in this browser demo.</p>
+
+      <div class="architecture-grid">
+        <article>
+          <span class="architecture-tag">LIVE ON THIS PAGE</span>
+          <h3>Browser demonstration</h3>
+          <p>Text parsing, field evidence, comparison, and the navigation assistant run locally in JavaScript. Data disappears on reload.</p>
+          <ul>
+            <li>Paste text or upload .txt</li>
+            <li>Review extracted JSON and source lines</li>
+            <li>Compare selected expected fields</li>
+          </ul>
+        </article>
+
+        <article>
+          <span class="architecture-tag">IN THE REPOSITORY</span>
+          <h3>Python service</h3>
+          <p>FastAPI accepts PDF and text uploads, uses PyMuPDF for embedded text, falls back to Tesseract OCR, and offers a server-side optional model path.</p>
+          <ul>
+            <li>Upload limit: 5 MB / 10 PDF pages</li>
+            <li>Expected-field evaluation endpoint</li>
+            <li>Docker setup and parser tests</li>
+          </ul>
+        </article>
+      </div>
+    </section>
+
+    <aside id="source-code" class="source-banner">
+      <div>
+        <span class="eyebrow">EXPLORE THE IMPLEMENTATION</span>
+        <h2>Read the code behind the workflow.</h2>
+        <p>The repository contains the browser demo, FastAPI backend, tests, Docker setup, and instructions. The API requires its own deployment and is not connected to this page.</p>
+      </div>
+      <a class="button button-light"
+         href="https://github.com/kaleb-minassie/document-extraction"
+         target="_blank" rel="noopener noreferrer">
+        View project on GitHub <span aria-hidden="true">↗</span>
+      </a>
     </aside>
   </main>
 
   <footer>
-    Kaleb Minassie
-    <span>Independent portfolio project · simulated data only</span>
+    <span>© 2026 Kaleb Minassie</span>
+    <span>Independent portfolio project · fictional sample data</span>
+    <a href="#top">Back to top ↑</a>
   </footer>
 
-  <!-- This assistant runs in the browser and works on GitHub Pages. -->
+  <!-- Local assistant: prepared answers and navigation, no AI server call. -->
   <div class="assistant-shell">
     <button id="assistant-toggle" class="assistant-toggle" type="button"
             aria-expanded="false" aria-controls="assistant-panel">
-      Ask the document assistant <span aria-hidden="true">✦</span>
+      <span class="assistant-spark" aria-hidden="true">✦</span>
+      Ask the document assistant
     </button>
 
     <section id="assistant-panel" class="assistant-panel"
              aria-label="Document assistant" hidden>
       <div class="assistant-header">
+        <div class="assistant-avatar" aria-hidden="true">✦</div>
         <div>
           <strong>Document assistant</strong>
-          <small>Help with the demo and its results</small>
+          <small><span class="online-dot"></span> Guide to this demo</small>
         </div>
         <button id="assistant-close" type="button" aria-label="Close assistant">×</button>
       </div>
@@ -121,20 +283,16 @@ Total: $150.00</textarea>
       </div>
 
       <form id="assistant-form" class="assistant-form">
-        <label class="visually-hidden" for="assistant-input">
-          Ask a question about document extraction
-        </label>
+        <label class="visually-hidden" for="assistant-input">Ask about document extraction</label>
         <input id="assistant-input" type="text" maxlength="250"
                autocomplete="off" placeholder="Ask about this demo…" required>
-        <button type="submit" aria-label="Send message">Send</button>
+        <button type="submit" aria-label="Send message">Send ↗</button>
       </form>
 
       <p class="assistant-disclosure">
-        On-page guide. Answers are based on this project, not a live AI model.
+        Project guide with prepared answers; no live AI model or server connection.
       </p>
     </section>
   </div>
-
-  <script src="app.js"></script>
 </body>
 </html>
