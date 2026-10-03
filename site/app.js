@@ -1,93 +1,70 @@
-// Browser demo data stays in memory and disappears when the page reloads.
-const $ = (id) => document.getElementById(id);
-
-// Escape values before inserting them into HTML.
-const escapeHtml = (value) =>
-  String(value).replace(/[&<>"']/g, (character) => ({
-    "&": "&amp;",
-    "<": "&lt;",
-    ">": "&gt;",
-    '"': "&quot;",
-    "'": "&#39;"
-  })[character]);
-
+// Static demo: invoice text and assistant messages stay in this browser tab.
+const $ = id => document.getElementById(id);
+const escapeHtml = value => String(value).replace(
+  /[&<>"']/g,
+  char => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[char])
+);
+const reviewFields = ['invoice_number','date','vendor','bill_to','email','total'];
+const fieldLabels = {
+  invoice_number:'Invoice number',
+  date:'Date',
+  vendor:'Vendor',
+  bill_to:'Bill to',
+  email:'Email',
+  total:'Total'
+};
 let lastExtraction = null;
 
-// Load the contents of a selected text file into the invoice input.
-$("doc-file").addEventListener("change", async (event) => {
+// Load a small text document into the editor.
+$('doc-file').addEventListener('change', async event => {
   const file = event.target.files[0];
-  if (file) $("document-input").value = await file.text();
+  if (!file) return;
+  if (file.size > 1024 * 1024) {
+    $('selected-file').textContent = 'Choose a text file smaller than 1 MB.';
+    event.target.value = '';
+    return;
+  }
+  $('document-input').value = await file.text();
+  $('selected-file').textContent = file.name;
 });
 
-const reviewFields = [
-  "invoice_number",
-  "date",
-  "vendor",
-  "bill_to",
-  "email",
-  "total"
-];
-
-// Compare only supported fields supplied in the expected JSON.
-function evaluateFields(result, raw) {
-  if (!raw.trim()) return null;
-
-  let expected;
-  try {
-    expected = JSON.parse(raw);
-  } catch {
-    throw new Error("Expected fields must be valid JSON.");
-  }
-
-  if (!expected || Array.isArray(expected) || typeof expected !== "object") {
-    throw new Error("Expected fields must be a JSON object.");
-  }
-
-  const fields = reviewFields.filter((key) =>
-    Object.hasOwn(expected, key)
-  );
-
-  if (!fields.length) {
-    throw new Error("Add at least one supported field to compare.");
-  }
-
-  if (fields.some((key) =>
-    expected[key] === null || typeof expected[key] === "object"
-  )) {
-    throw new Error("Expected values must be text or numbers.");
-  }
-
-  return fields.map((key) => ({
-    key,
-    expected: String(expected[key]),
-    actual: result[key],
-    match: String(result[key] ?? "").toLowerCase() ===
-           String(expected[key]).toLowerCase()
-  }));
-}
-
-$("extract-doc").addEventListener("click", () => {
-  const text = $("document-input").value;
-  const field = (pattern) => text.match(pattern)?.[1]?.trim() || null;
+// Extract known invoice labels and retain the matching source line as evidence.
+function parseInvoice(text) {
   const lines = text.split(/\r?\n/);
+  const patterns = {
+    invoice_number: /^invoice\s*(?:number|#)\s*:\s*(.+)$/i,
+    date: /^date\s*:\s*(.+)$/i,
+    vendor: /^vendor\s*:\s*(.+)$/i,
+    bill_to: /^bill\s*to\s*:\s*(.+)$/i,
+    email: /^email\s*:\s*([^\s]+)$/i,
+    total: /^total\s*:\s*\$?([\d,.]+)$/i
+  };
+  const result = {};
+  const evidence = {};
+
+  for (const key of reviewFields) {
+    const index = lines.findIndex(line => patterns[key].test(line.trim()));
+    const match = index >= 0 ? lines[index].trim().match(patterns[key]) : null;
+    result[key] = match?.[1]?.trim() || null;
+    evidence[key] = index >= 0
+      ? {line: index + 1, text: lines[index].trim()}
+      : null;
+  }
+
+  // Read simple comma-separated invoice rows following the expected header.
   const items = [];
-
-  // Read simple comma-separated invoice line items.
-  const headerIndex = lines.findIndex((line) =>
-    /^item\s*,\s*quantity\s*,\s*unit price\s*,\s*total/i.test(line)
+  const headerIndex = lines.findIndex(
+    line => /^item\s*,\s*quantity\s*,\s*unit price\s*,\s*total/i.test(line)
   );
-
   if (headerIndex >= 0) {
-    for (const line of lines.slice(headerIndex + 1)) {
-      const cols = line.split(",").map((value) => value.trim());
-
+    for (let index = headerIndex + 1; index < lines.length; index++) {
+      const cols = lines[index].split(',').map(part => part.trim());
       if (
         cols.length !== 4 ||
         !/^\d+(?:\.\d+)?$/.test(cols[1]) ||
-        !/^\d+(?:\.\d+)?$/.test(cols[2])
-      ) {
-        break;
-      }
+        !/^\d+(?:\.\d+)?$/.test(cols[2]) ||
+        !/^\d+(?:\.\d+)?$/.test(cols[3])
+      ) break;
 
       items.push({
         description: cols[0],
@@ -98,268 +75,295 @@ $("extract-doc").addEventListener("click", () => {
     }
   }
 
-  // Extract the labeled fields from the invoice text.
-  const result = {
-    invoice_number: field(/invoice\s*(?:number|#)\s*:\s*([^\r\n]+)/i),
-    date: field(/date\s*:\s*([^\r\n]+)/i),
-    vendor: field(/vendor\s*:\s*([^\r\n]+)/i),
-    bill_to: field(/bill\s*to\s*:\s*([^\r\n]+)/i),
-    email: field(/\bemail\s*:\s*([^\s\r\n]+)/i),
-    total: field(/(?:^|\n)total\s*:\s*\$?([\d,.]+)/i),
-    line_items: items
-  };
+  result.line_items = items;
+  return {result,evidence};
+}
 
-  lastExtraction = result;
+// Compare only fields supplied by the visitor in the expected JSON.
+function evaluateFields(result, raw) {
+  if (!raw.trim()) return null;
 
-  const found = reviewFields.filter((key) => result[key] !== null).length;
-  let evaluation = "";
-
+  let expected;
   try {
-    const comparisons = evaluateFields(
-      result,
-      $("expected-fields").value
-    );
-
-    if (comparisons) {
-      const matched = comparisons.filter((item) => item.match).length;
-
-      const rows = comparisons.map((item) => `
-        <tr>
-          <th scope="row">${escapeHtml(item.key.replaceAll("_", " "))}</th>
-          <td>${escapeHtml(item.expected)}</td>
-          <td>${escapeHtml(item.actual ?? "Not found")}</td>
-          <td class="${item.match ? "match" : "mismatch"}">
-            ${item.match ? "Match" : "Review"}
-          </td>
-        </tr>
-      `).join("");
-
-      evaluation = `
-        <section class="evaluation">
-          <h3>
-            Field comparison
-            <span>${matched}/${comparisons.length} matched</span>
-          </h3>
-          <div class="table-scroll">
-            <table>
-              <thead>
-                <tr>
-                  <th>Field</th>
-                  <th>Expected</th>
-                  <th>Extracted</th>
-                  <th>Result</th>
-                </tr>
-              </thead>
-              <tbody>${rows}</tbody>
-            </table>
-          </div>
-          <p>
-            Exact text comparison on the fields you supplied.
-            This is not a model confidence score.
-          </p>
-        </section>
-      `;
-    }
-  } catch (error) {
-    evaluation = `
-      <p class="validation-error" role="alert">
-        ${escapeHtml(error.message)}
-      </p>
-    `;
+    expected = JSON.parse(raw);
+  } catch {
+    throw new Error('Expected fields must be valid JSON.');
   }
 
-  $("document-result").className = "";
-  $("document-result").innerHTML = `
-    <div class="summary">
-      <div><strong>${found}/6</strong><small>Fields found</small></div>
-      <div><strong>${items.length}</strong><small>Line items</small></div>
-    </div>
-    ${evaluation}
-    <pre class="code">${escapeHtml(JSON.stringify(result, null, 2))}</pre>
+  if (!expected || Array.isArray(expected) || typeof expected !== 'object') {
+    throw new Error('Expected fields must be a JSON object.');
+  }
+
+  const fields = reviewFields.filter(key => Object.hasOwn(expected,key));
+  if (!fields.length) {
+    throw new Error('Add at least one supported field to compare.');
+  }
+  if (fields.some(key => !['string','number'].includes(typeof expected[key]))) {
+    throw new Error('Expected values must be text or numbers.');
+  }
+
+  return fields.map(key => ({
+    key,
+    expected: String(expected[key]),
+    actual: result[key],
+    match: String(result[key] ?? '').toLowerCase() ===
+           String(expected[key]).toLowerCase()
+  }));
+}
+
+function renderEvaluation(comparisons) {
+  if (!comparisons) return '';
+
+  const matched = comparisons.filter(item => item.match).length;
+  const rows = comparisons.map(item => `
+    <tr>
+      <th scope="row">${escapeHtml(fieldLabels[item.key])}</th>
+      <td>${escapeHtml(item.expected)}</td>
+      <td>${escapeHtml(item.actual ?? 'Not found')}</td>
+      <td class="${item.match ? 'match':'mismatch'}">
+        ${item.match ? 'Match':'Review'}
+      </td>
+    </tr>
+  `).join('');
+
+  return `
+    <section class="evaluation">
+      <h3>Expected-field comparison
+        <span>${matched}/${comparisons.length} matched</span>
+      </h3>
+      <div class="table-scroll">
+        <table>
+          <thead><tr><th>Field</th><th>Expected</th><th>Extracted</th><th>Result</th></tr></thead>
+          <tbody>${rows}</tbody>
+        </table>
+      </div>
+      <p>Exact text matching on supplied fields. This is not a model confidence score.</p>
+    </section>
   `;
+}
+
+function renderResult(result, evidence, comparisonHtml) {
+  const found = reviewFields.filter(key => result[key] !== null).length;
+  const fields = reviewFields.map(key => `
+    <div class="field-card${result[key] === null ? ' missing':''}">
+      <div class="field-card-head">
+        <span>${fieldLabels[key]}</span>
+        <strong>${escapeHtml(result[key] ?? 'Not found')}</strong>
+      </div>
+      <small>
+        ${evidence[key]
+          ? `Source line ${evidence[key].line}: ${escapeHtml(evidence[key].text)}`
+          : 'No matching labeled line found'}
+      </small>
+    </div>
+  `).join('');
+
+  $('document-result').className = '';
+  $('document-result').innerHTML = `
+    <div class="result-summary">
+      <div><strong>${found}/6</strong><small>Fields located</small></div>
+      <div><strong>${result.line_items.length}</strong><small>Line items</small></div>
+      <div><strong>${6-found}</strong><small>Needs review</small></div>
+    </div>
+    <div class="result-tabs" role="tablist" aria-label="Result view">
+      <button type="button" role="tab" aria-selected="true"
+              aria-controls="fields-view" id="fields-tab">Fields and evidence</button>
+      <button type="button" role="tab" aria-selected="false"
+              aria-controls="json-view" id="json-tab">JSON output</button>
+    </div>
+    <div id="fields-view" class="result-view" role="tabpanel" aria-labelledby="fields-tab">
+      <div class="field-list">${fields}</div>
+      <p class="line-item-note">
+        ${result.line_items.length} line item${result.line_items.length === 1 ? '':'s'}
+        parsed from the comma-separated table.
+      </p>
+    </div>
+    <div id="json-view" class="result-view" role="tabpanel"
+         aria-labelledby="json-tab" hidden>
+      <pre class="code">${escapeHtml(JSON.stringify(result,null,2))}</pre>
+      <button id="export-json" type="button" class="export-button">
+        Download JSON ↗
+      </button>
+    </div>
+    ${comparisonHtml}
+  `;
+
+  // Switch between the evidence cards and JSON output.
+  document.querySelectorAll('.result-tabs button').forEach(button =>
+    button.addEventListener('click', () => {
+      const showJson = button.id === 'json-tab';
+      $('fields-tab').setAttribute('aria-selected',String(!showJson));
+      $('json-tab').setAttribute('aria-selected',String(showJson));
+      $('fields-view').hidden = showJson;
+      $('json-view').hidden = !showJson;
+    })
+  );
+
+  // Save the extracted JSON without contacting a server.
+  $('export-json').addEventListener('click', () => {
+    const url = URL.createObjectURL(
+      new Blob([JSON.stringify(result,null,2)],{type:'application/json'})
+    );
+    const link = document.createElement('a');
+    link.href = url;
+    link.download = 'invoice-extraction.json';
+    link.click();
+    setTimeout(() => URL.revokeObjectURL(url),1000);
+  });
+}
+
+$('extract-doc').addEventListener('click', () => {
+  const {result,evidence} = parseInvoice($('document-input').value);
+  lastExtraction = result;
+
+  let comparisonHtml = '';
+  try {
+    comparisonHtml = renderEvaluation(
+      evaluateFields(result,$('expected-fields').value)
+    );
+  } catch (error) {
+    comparisonHtml = `<p class="validation-error" role="alert">${escapeHtml(error.message)}</p>`;
+  }
+  renderResult(result,evidence,comparisonHtml);
 });
 
-// The assistant uses local question matching. It makes no server request.
-const assistantPanel = $("assistant-panel");
-const assistantMessages = $("assistant-messages");
-const assistantInput = $("assistant-input");
+// This is a local guide with prepared responses, not a live AI chatbot.
+// It never sends documents or chat messages to a server.
+const assistantPanel = $('assistant-panel');
+const assistantMessages = $('assistant-messages');
+const assistantInput = $('assistant-input');
 
 function showAssistant(open) {
   assistantPanel.hidden = !open;
-  $("assistant-toggle").setAttribute("aria-expanded", String(open));
-
+  $('assistant-toggle').setAttribute('aria-expanded',String(open));
   if (open) assistantInput.focus();
-  else $("assistant-toggle").focus();
+  else $('assistant-toggle').focus();
 }
 
-function addAssistantMessage(message, sender = "assistant", destination = null) {
-  const bubble = document.createElement("div");
+function addAssistantMessage(message,sender='assistant',destination=null) {
+  const bubble = document.createElement('div');
   bubble.className = `assistant-message ${sender}`;
-
-  // textContent keeps a visitor's question from becoming HTML.
   bubble.textContent = message;
   assistantMessages.append(bubble);
 
   if (destination) {
-    const link = document.createElement("button");
-    link.type = "button";
-    link.className = "assistant-jump";
+    const link = document.createElement('button');
+    link.type = 'button';
+    link.className = 'assistant-jump';
     link.textContent = destination.label;
-
-    link.addEventListener("click", () => {
-      if (destination.id === "expected-fields") {
-        $("expected-fields").closest("details").open = true;
+    link.addEventListener('click', () => {
+      if (destination.id === 'expected-fields') {
+        $('expected-fields').closest('details').open = true;
       }
-
-      $(destination.id).scrollIntoView({
-        behavior: "smooth",
-        block: "center"
-      });
-
-      if (["document-input", "expected-fields"].includes(destination.id)) {
-        $(destination.id).focus({ preventScroll: true });
+      $(destination.id).scrollIntoView({behavior:'smooth',block:'center'});
+      if (['document-input','expected-fields'].includes(destination.id)) {
+        $(destination.id).focus({preventScroll:true});
       }
     });
-
     assistantMessages.append(link);
   }
-
   assistantMessages.scrollTop = assistantMessages.scrollHeight;
 }
 
 function explainExtraction() {
   if (!lastExtraction) {
     return {
-      text: "First click “Extract and evaluate” under the sample invoice. Then ask me again and I can explain what the page found.",
-      destination: {
-        id: "extract-doc",
-        label: "Go to Extract and evaluate"
-      }
+      text:'Click “Extract and review” to process the sample invoice. Then ask me to explain the result.',
+      destination:{id:'extract-doc',label:'Go to the demo'}
     };
   }
 
-  const labels = {
-    invoice_number: "invoice number",
-    date: "date",
-    vendor: "vendor",
-    bill_to: "bill-to name",
-    email: "email",
-    total: "total"
-  };
-
-  const missing = Object.entries(labels)
-    .filter(([key]) => lastExtraction[key] === null)
-    .map(([, label]) => label);
-
-  const found = Object.keys(labels).length - missing.length;
-  const lines = lastExtraction.line_items.length;
-
+  const missing = reviewFields
+    .filter(key => lastExtraction[key] === null)
+    .map(key => fieldLabels[key].toLowerCase());
+  const found = 6-missing.length;
   return {
-    text: `The demo found ${found} of 6 main fields and ${lines} line item${lines === 1 ? "" : "s"}. ${
-      missing.length
-        ? `Missing: ${missing.join(", ")}. Check that each field has a clear label and a value in the invoice text.`
-        : "All main fields were found."
-    } These values come from simple text rules, so check the JSON against the invoice.`,
-    destination: {
-      id: "document-result",
-      label: "View JSON result"
-    }
+    text:`The demo found ${found} of 6 main fields and ${lastExtraction.line_items.length} line item${lastExtraction.line_items.length === 1 ? '':'s'}. ${missing.length ? `Missing: ${missing.join(', ')}.` : 'All six main fields were located.'} Each field card shows the matching source line. The comparison table checks only the expected values you provided.`,
+    destination:{id:'document-result',label:'View extraction'}
   };
 }
 
 function answerAssistant(question) {
   const q = question.toLowerCase().trim();
-  const includes = (...words) => words.some((word) => q.includes(word));
+  const includes = (...words) => words.some(word => q.includes(word));
 
-  if (includes("privacy", "private", "send data", "uploaded where", "stored", "api key")) {
+  if (includes('privacy','private','send data','stored','api key')) {
     return {
-      text: "This public demo processes the invoice and this chat in your browser. It does not send either to an AI service. The separate Python backend supports optional model extraction when you run it yourself."
+      text:'The public page parses the document and this chat in your browser. Nothing is sent to an AI service. The separate Python backend can use a model when configured with a server-side API key.'
     };
   }
-
-  if (includes("pdf", "scan", "ocr", "image")) {
+  if (includes('pdf','scan','ocr','image')) {
     return {
-      text: "The public page accepts pasted text or a .txt file. PDF reading and OCR are available in the separate Python backend, not on this GitHub Pages demo.",
-      destination: { id: "document-input", label: "Go to text input" }
+      text:'This hosted demo accepts pasted text or a .txt file. The separate FastAPI backend supports PDF text extraction and OCR for image-only pages when Tesseract is installed.',
+      destination:{id:'architecture',label:'See backend details'}
     };
   }
-
-  if (includes("explain", "my result", "missing", "null", "wrong", "error", "why did")) {
+  if (includes('accuracy','evaluate','expected','compare','match','review')) {
+    return {
+      text:'Open “Compare with expected values,” enter known fields as JSON, and select “Extract and review.” The result marks exact matches and mismatches. This is not an AI confidence score.',
+      destination:{id:'expected-fields',label:'Go to expected values'}
+    };
+  }
+  if (includes('explain','my result','missing','null','wrong','error','why did')) {
     return explainExtraction();
   }
-
-  if (includes("line item", "table", "quantity", "unit price")) {
+  if (includes('source line','evidence','trace','ground')) {
     return {
-      text: "For line items, the rules look for a comma-separated header: Item,Quantity,Unit Price,Total. Each following row should have those four values in that order. The JSON shows each extracted item.",
-      destination: { id: "document-input", label: "View invoice text" }
+      text:'After extraction, open the Fields and evidence view. Each field shows the invoice line used to produce it. A missing field has no matching labeled line.',
+      destination:{id:'document-result',label:'View field evidence'}
     };
   }
-
-  if (includes("accuracy", "evaluate", "expected", "compare", "match", "benchmark")) {
+  if (includes('line item','table','quantity','unit price')) {
     return {
-      text: "Open “Compare with expected fields,” enter known values as JSON, then click “Extract and evaluate.” The review table shows each match and mismatch. The score is an exact comparison for the fields you supplied, not a model confidence estimate.",
-      destination: { id: "expected-fields", label: "Go to expected fields" }
+      text:'The browser parser looks for the header Item,Quantity,Unit Price,Total and reads following comma-separated rows with numeric quantities and prices.',
+      destination:{id:'document-input',label:'View sample invoice'}
     };
   }
-
-  if (includes("field", "json", "extract what", "output")) {
+  if (includes('model','ai','lazarus')) {
     return {
-      text: "The demo looks for invoice number, date, vendor, bill-to name, email, total, and line items. Click “Extract and evaluate” to see the JSON. A null value means a rule did not find that field.",
-      destination: { id: "document-result", label: "Go to result" }
+      text:'This independent portfolio project is inspired by document AI work. The public extraction uses simple rules. The downloaded Python backend has an optional model path, but it is not active on this page.',
+      destination:{id:'source-code',label:'Explore source'}
     };
   }
-
-  if (includes("code", "source", "backend", "download", "github")) {
+  if (includes('code','source','backend','download','github')) {
     return {
-      text: "The “See how this app works” section has a source download. It includes the separate FastAPI backend for PDF text, OCR, and optional model extraction.",
-      destination: { id: "source-code", label: "Go to source code" }
+      text:'The source section contains the browser demo and a separate FastAPI backend for PDFs, OCR, optional model extraction, and field evaluation.',
+      destination:{id:'source-code',label:'Go to source'}
     };
   }
-
-  if (includes("start", "use", "navigate", "where", "help", "sample", "upload", "paste", "how do")) {
+  if (includes('start','use','navigate','where','help','sample','upload','paste','how do')) {
     return {
-      text: "Start with the sample invoice already in the text box, or paste your own invoice text or choose a .txt file. Open the optional expected-fields section, then click “Extract and evaluate.” Inspect the JSON and comparison table on the right.",
-      destination: { id: "document-input", label: "Go to invoice input" }
+      text:'Try the preloaded sample invoice or paste your own text. Optionally edit the expected JSON, click “Extract and review,” then inspect Fields and evidence or JSON output.',
+      destination:{id:'document-input',label:'Go to invoice input'}
     };
   }
-
   return {
-    text: "I can help you start the demo, understand the JSON, troubleshoot missing fields, explain line items, find the source code, or clarify PDF and OCR support. Try one of those questions."
+    text:'I can help you use the demo, explain field evidence, review mismatches, find the source code, or clarify PDF and OCR support. Try one of those questions.'
   };
 }
 
 function askAssistant(question) {
   const trimmed = question.trim();
   if (!trimmed) return;
-
   showAssistant(true);
-  addAssistantMessage(trimmed, "visitor");
-
+  addAssistantMessage(trimmed,'visitor');
   const response = answerAssistant(trimmed);
-  addAssistantMessage(response.text, "assistant", response.destination);
-
-  assistantInput.value = "";
+  addAssistantMessage(response.text,'assistant',response.destination);
+  assistantInput.value = '';
 }
 
-$("assistant-toggle").addEventListener("click", () =>
-  showAssistant(assistantPanel.hidden)
+$('assistant-toggle').addEventListener(
+  'click', () => showAssistant(assistantPanel.hidden)
 );
-$("assistant-close").addEventListener("click", () =>
-  showAssistant(false)
-);
-$("assistant-form").addEventListener("submit", (event) => {
+$('assistant-close').addEventListener('click', () => showAssistant(false));
+$('assistant-form').addEventListener('submit', event => {
   event.preventDefault();
   askAssistant(assistantInput.value);
 });
-document.querySelectorAll("[data-assistant-prompt]").forEach((button) => {
-  button.addEventListener("click", () =>
-    askAssistant(button.dataset.assistantPrompt)
-  );
-});
-document.addEventListener("keydown", (event) => {
-  if (event.key === "Escape" && !assistantPanel.hidden) showAssistant(false);
-});
-
-addAssistantMessage(
-  "Hi! I can guide you through extracting an invoice and explain the JSON result. What would you like to know?"
+document.querySelectorAll('[data-assistant-prompt]').forEach(button =>
+  button.addEventListener('click', () => askAssistant(button.dataset.assistantPrompt))
 );
+document.addEventListener('keydown', event => {
+  if (event.key === 'Escape' && !assistantPanel.hidden) showAssistant(false);
+});
+addAssistantMessage('Hi! I can guide you through the invoice workflow and explain the results. What would you like to know?');
